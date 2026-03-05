@@ -107,7 +107,7 @@ Node.js + Express.js
 
 * middleware архитектура
 
-### 🗄 База данных
+### База данных
 
 MySQL
 

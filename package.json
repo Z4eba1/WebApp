@@ -1,0 +1,24 @@
+{
+  "name": "webapp",
+  "version": "1.0.0",
+  "description": "KinoWeb — Онлайн-кинотеатр",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Z4eba1/WebApp.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/Z4eba1/WebApp/issues"
+  },
+  "homepage": "https://github.com/Z4eba1/WebApp#readme",
+  "dependencies": {
+    "mysql2": "^3.20.0"
+  }
+}

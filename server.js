@@ -42,3 +42,8 @@ app.post('/api/auth/register', async (req, res) => {
 
     res.json({ id: result.insertId });
 });
+
+app.get('/api/movies', async (req, res) => {
+    const [rows] = await pool.execute('SELECT * FROM movies');
+    res.json(rows);
+});

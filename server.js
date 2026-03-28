@@ -56,3 +56,27 @@ app.post('/api/favorites/:id', async (req, res) => {
     res.json({ ok: true });
 });
 
+const routes = {
+    "/": () => setView("<h1>Главная</h1>")
+};
+
+function router() {
+    const path = location.pathname;
+    routes[path]?.();
+}
+
+function setView(html) {
+    document.getElementById('app-view').innerHTML = html;
+}
+
+window.addEventListener("popstate", router);
+
+function renderLogin() {
+    setView(`
+        <form id="login">
+            <input name="email">
+            <input name="password">
+            <button>Login</button>
+        </form>
+    `);
+}

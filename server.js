@@ -47,3 +47,12 @@ app.get('/api/movies', async (req, res) => {
     const [rows] = await pool.execute('SELECT * FROM movies');
     res.json(rows);
 });
+
+app.post('/api/favorites/:id', async (req, res) => {
+    await pool.execute(
+        'INSERT INTO favorites (user_id, movie_id) VALUES (?, ?)',
+        [1, req.params.id]
+    );
+    res.json({ ok: true });
+});
+

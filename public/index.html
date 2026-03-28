@@ -2,11 +2,33 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>KinoWeb</title>
+    <meta name="description" content="KinoWeb — онлайн-кинотеатр">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/style.css">
 </head>
 <body>
-    <main id="app-view"></main>
+    <div class="page-shell">
+        <header class="site-header">
+            <div class="brand-block">
+                <button class="brand-link" data-link="/" type="button">KinoWeb</button>
+            </div>
+            <nav class="site-nav" id="site-nav"></nav>
+        </header>
+
+        <main id="app-view" class="app-view" aria-live="polite"></main>
+    </div>
+
+    <template id="empty-state-template">
+        <div class="empty-state">
+            <h3>Пока ничего не найдено</h3>
+            <p>Попробуйте изменить фильтры или добавить новый фильм.</p>
+        </div>
+    </template>
+
     <script src="/app.js"></script>
 </body>
 </html>

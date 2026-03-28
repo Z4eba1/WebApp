@@ -80,3 +80,21 @@ function renderLogin() {
         </form>
     `);
 }
+
+async function renderCatalog() {
+    const movies = await fetch('/api/movies').then(r => r.json());
+
+    setView(movies.map(m => `<div>${m.title}</div>`).join(''));
+}
+
+async function search(q) {
+    return fetch(`/api/movies/search?q=${q}`).then(r => r.json());
+}
+
+function renderProfile() {
+    setView(`<h1>Профиль</h1>`);
+}
+
+function toggleFavorite(id) {
+    fetch(`/api/favorites/${id}`, { method: 'POST' });
+}

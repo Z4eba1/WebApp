@@ -409,3 +409,317 @@ app.get('/api/auth/me', authenticateToken, async (req, res) => {
         res.status(500).json({ message: 'Не удалось получить профиль.' });
     }
 });
+
+app.get('/api/movies/search', async (req, res) => {
+    try {
+        const search = String(req.query.q || '').trim();
+
+        if (!search) {
+            return res.json([]);
+        }
+
+        const [rows] = await pool.execute(
+            `SELECT m.*, u.name AS author
+             FROM movies m
+             JOIN users u ON u.id = m.user_id
+             WHERE m.title LIKE ? OR m.description LIKE ? OR m.genre LIKE ?
+             ORDER BY m.is_popular DESC, m.rating DESC, m.created_at DESC`,
+            [`%${search}%`, `%${search}%`, `%${search}%`]
+        );
+
+        res.json(rows.map(normalizeMovie));
+    } catch (error) {
+        console.error('Movie search error:', error);
+        res.status(500).json({ message: 'Не удалось выполнить поиск.' });
+    }
+});
+
+app.get('/api/movies', async (req, res) => {
+    try {
+        const conditions = [];
+        const values = [];
+
+        if (req.query.popular === 'true') {
+            conditions.push('m.is_popular = TRUE');
+        }
+
+        if (req.query.genre) {
+            conditions.push('m.genre = ?');
+            values.push(String(req.query.genre));
+        }
+
+        if (req.query.year) {
+            conditions.push('m.vyear = ?');
+            values.push(Number(req.query.year));
+        }
+
+        if (req.query.rating) {
+            conditions.push('m.rating >= ?');
+            values.push(Number(req.query.rating));
+        }
+
+        if (req.query.user === 'me' && req.headers.authorization) {
+            try {
+                const token = req.headers.authorization.startsWith('Bearer ')
+                    ? req.headers.authorization.slice(7)
+                    : null;
+                if (token) {
+                    const payload = jwt.verify(token, JWT_SECRET);
+                    conditions.push('m.user_id = ?');
+                    values.push(payload.userId);
+                }
+            } catch (error) {
+                // Ignore invalid optional token on public list endpoint.
+            }
+        }
+
+        const whereClause = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+        const [rows] = await pool.execute(
+            `SELECT m.*, u.name AS author
+             FROM movies m
+             JOIN users u ON u.id = m.user_id
+             ${whereClause}
+             ORDER BY m.is_popular DESC, m.rating DESC, m.created_at DESC`,
+            values
+        );
+
+        res.json(rows.map(normalizeMovie));
+    } catch (error) {
+        console.error('Get movies error:', error);
+        res.status(500).json({ message: 'Не удалось получить список фильмов.' });
+    }
+});
+
+app.get('/api/movies/:id', async (req, res) => {
+    try {
+        const movieId = Number(req.params.id);
+        if (!Number.isInteger(movieId)) {
+            return res.status(400).json({ message: 'Некорректный идентификатор фильма.' });
+        }
+
+        const [rows] = await pool.execute(
+            `SELECT m.*, u.name AS author
+             FROM movies m
+             JOIN users u ON u.id = m.user_id
+             WHERE m.id = ?`,
+            [movieId]
+        );
+
+        if (!rows.length) {
+            return res.status(404).json({ message: 'Фильм не найден.' });
+        }
+
+        res.json(normalizeMovie(rows[0]));
+    } catch (error) {
+        console.error('Get movie by id error:', error);
+        res.status(500).json({ message: 'Не удалось получить фильм.' });
+    }
+});
+
+app.post('/api/movies', authenticateToken, async (req, res) => {
+    try {
+        const payload = {
+            title: String(req.body.title || '').trim(),
+            description: String(req.body.description || '').trim(),
+            poster: String(req.body.poster || '').trim(),
+            vyear: req.body.vyear === '' ? null : req.body.vyear,
+            rating: req.body.rating === '' ? 0 : req.body.rating,
+            genre: String(req.body.genre || '').trim(),
+            is_popular: Boolean(req.body.is_popular)
+        };
+
+        const errors = validateMovieBody(payload);
+        if (errors.length) {
+            return res.status(400).json({ message: errors[0], errors });
+        }
+
+        const [result] = await pool.execute(
+            `INSERT INTO movies (user_id, title, description, poster, vyear, rating, genre, is_popular)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+            [
+                req.user.userId,
+                payload.title,
+                payload.description || null,
+                payload.poster || null,
+                payload.vyear ? Number(payload.vyear) : null,
+                Number(payload.rating || 0),
+                payload.genre || null,
+                payload.is_popular
+            ]
+        );
+
+        const [rows] = await pool.execute(
+            `SELECT m.*, u.name AS author
+             FROM movies m
+             JOIN users u ON u.id = m.user_id
+             WHERE m.id = ?`,
+            [result.insertId]
+        );
+
+        res.status(201).json({
+            message: 'Фильм добавлен.',
+            movie: normalizeMovie(rows[0])
+        });
+    } catch (error) {
+        console.error('Create movie error:', error);
+        res.status(500).json({ message: 'Не удалось добавить фильм.' });
+    }
+});
+
+app.put('/api/movies/:id', authenticateToken, ensureMovieOwner, async (req, res) => {
+    try {
+        const payload = {
+            title: String(req.body.title || '').trim(),
+            description: String(req.body.description || '').trim(),
+            poster: String(req.body.poster || '').trim(),
+            vyear: req.body.vyear === '' ? null : req.body.vyear,
+            rating: req.body.rating === '' ? 0 : req.body.rating,
+            genre: String(req.body.genre || '').trim(),
+            is_popular: Boolean(req.body.is_popular)
+        };
+
+        const errors = validateMovieBody(payload);
+        if (errors.length) {
+            return res.status(400).json({ message: errors[0], errors });
+        }
+
+        await pool.execute(
+            `UPDATE movies
+             SET title = ?, description = ?, poster = ?, vyear = ?, rating = ?, genre = ?, is_popular = ?
+             WHERE id = ?`,
+            [
+                payload.title,
+                payload.description || null,
+                payload.poster || null,
+                payload.vyear ? Number(payload.vyear) : null,
+                Number(payload.rating || 0),
+                payload.genre || null,
+                payload.is_popular,
+                Number(req.params.id)
+            ]
+        );
+
+        const [rows] = await pool.execute(
+            `SELECT m.*, u.name AS author
+             FROM movies m
+             JOIN users u ON u.id = m.user_id
+             WHERE m.id = ?`,
+            [Number(req.params.id)]
+        );
+
+        res.json({
+            message: 'Фильм обновлён.',
+            movie: normalizeMovie(rows[0])
+        });
+    } catch (error) {
+        console.error('Update movie error:', error);
+        res.status(500).json({ message: 'Не удалось обновить фильм.' });
+    }
+});
+
+app.delete('/api/movies/:id', authenticateToken, ensureMovieOwner, async (req, res) => {
+    try {
+        await pool.execute('DELETE FROM movies WHERE id = ?', [Number(req.params.id)]);
+        res.json({ message: 'Фильм удалён.' });
+    } catch (error) {
+        console.error('Delete movie error:', error);
+        res.status(500).json({ message: 'Не удалось удалить фильм.' });
+    }
+});
+
+app.get('/api/favorites', authenticateToken, async (req, res) => {
+    try {
+        const [rows] = await pool.execute(
+            `SELECT m.*, u.name AS author
+             FROM favorites f
+             JOIN movies m ON m.id = f.movie_id
+             JOIN users u ON u.id = m.user_id
+             WHERE f.user_id = ?
+             ORDER BY f.created_at DESC`,
+            [req.user.userId]
+        );
+
+        res.json(rows.map(normalizeMovie));
+    } catch (error) {
+        console.error('Get favorites error:', error);
+        res.status(500).json({ message: 'Не удалось получить избранное.' });
+    }
+});
+
+app.post('/api/favorites/:movieId', authenticateToken, async (req, res) => {
+    try {
+        const movieId = Number(req.params.movieId);
+        if (!Number.isInteger(movieId)) {
+            return res.status(400).json({ message: 'Некорректный идентификатор фильма.' });
+        }
+
+        const [movies] = await pool.execute('SELECT id FROM movies WHERE id = ?', [movieId]);
+        if (!movies.length) {
+            return res.status(404).json({ message: 'Фильм не найден.' });
+        }
+
+        await pool.execute(
+            'INSERT INTO favorites (user_id, movie_id) VALUES (?, ?)',
+            [req.user.userId, movieId]
+        );
+
+        res.status(201).json({ message: 'Фильм добавлен в избранное.' });
+    } catch (error) {
+        if (error && error.code === 'ER_DUP_ENTRY') {
+            return res.status(409).json({ message: 'Фильм уже находится в избранном.' });
+        }
+
+        console.error('Add favorite error:', error);
+        res.status(500).json({ message: 'Не удалось добавить фильм в избранное.' });
+    }
+});
+
+app.delete('/api/favorites/:movieId', authenticateToken, async (req, res) => {
+    try {
+        const movieId = Number(req.params.movieId);
+        if (!Number.isInteger(movieId)) {
+            return res.status(400).json({ message: 'Некорректный идентификатор фильма.' });
+        }
+
+        const [result] = await pool.execute(
+            'DELETE FROM favorites WHERE user_id = ? AND movie_id = ?',
+            [req.user.userId, movieId]
+        );
+
+        if (!result.affectedRows) {
+            return res.status(404).json({ message: 'Фильм не найден в избранном.' });
+        }
+
+        res.json({ message: 'Фильм удалён из избранного.' });
+    } catch (error) {
+        console.error('Delete favorite error:', error);
+        res.status(500).json({ message: 'Не удалось удалить фильм из избранного.' });
+    }
+});
+
+app.get('/api/health', async (req, res) => {
+    try {
+        await pool.query('SELECT 1');
+        res.json({ status: 'ok', timestamp: new Date().toISOString() });
+    } catch (error) {
+        res.status(500).json({ status: 'error', message: 'Database connection failed.' });
+    }
+});
+
+app.get(/^\/(?!api).*/, (req, res) => {
+    res.sendFile(path.join(PUBLIC_DIR, 'index.html'));
+});
+
+async function start() {
+    try {
+        await initializeDatabase();
+        app.listen(PORT, () => {
+            console.log(`KinoWeb server started on http://localhost:${PORT}`);
+        });
+    } catch (error) {
+        console.error('Failed to start server:', error);
+        process.exit(1);
+    }
+}
+
+start();

@@ -1,7 +1,9 @@
 const mysql = require('mysql2/promise');
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
+const express = require('express');
 
 require('dotenv').config();
-const express = require('express');
 
 const app = express();
 const PORT = 3001;
@@ -24,4 +26,8 @@ async function initializeDatabase() {
             password_hash VARCHAR(255)
         )
     `);
+}
+
+function createToken(user) {
+    return jwt.sign({ userId: user.id }, 'secret');
 }

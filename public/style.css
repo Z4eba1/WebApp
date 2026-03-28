@@ -1,4 +1,35 @@
+:root {
+    --bg: #041712;
+    --panel: rgba(4, 26, 20, 0.82);
+    --card: rgba(79, 242, 177, 0.1);
+    --line: rgba(79, 242, 177, 0.24);
+    --text: #ecfff8;
+    --muted: rgba(214, 255, 242, 0.76);
+    --accent: rgba(79, 242, 177, 0.712);
+    --accent-strong: #7cf6ca;
+    --danger: #ff918d;
+    --shadow: 0 30px 90px rgba(0, 0, 0, 0.32);
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
 body {
-    background: black;
-    color: white;
+    margin: 0;
+    min-height: 100vh;
+    font-family: 'Manrope', sans-serif;
+    color: var(--text);
+    background-color: var(--bg);
+    background-image:
+        linear-gradient(rgba(7, 16, 26, 0.2), rgba(7, 16, 26, 0.2)),
+        url("./back.png");
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: cover;
+    background-attachment: fixed;
 }

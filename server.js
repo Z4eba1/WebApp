@@ -31,3 +31,14 @@ async function initializeDatabase() {
 function createToken(user) {
     return jwt.sign({ userId: user.id }, 'secret');
 }
+
+app.post('/api/auth/register', async (req, res) => {
+    const hash = await bcrypt.hash(req.body.password, 10);
+
+    const [result] = await pool.execute(
+        'INSERT INTO users (email, password_hash) VALUES (?, ?)',
+        [req.body.email, hash]
+    );
+
+    res.json({ id: result.insertId });
+});

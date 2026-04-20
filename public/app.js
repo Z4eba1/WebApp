@@ -25,6 +25,7 @@ const routes = [
     { path: '/search', view: renderSearch },
     { path: '/favorites', view: renderFavorites, private: true },
     { path: '/profile', view: renderProfile, private: true },
+    { path: '/admin', view: renderAdmin, private: true, admin: true },
     { path: '/auth/login', view: renderLogin },
     { path: '/auth/register', view: renderRegister },
     { path: '/auth/recover', view: renderRecover },
@@ -128,6 +129,11 @@ async function router() {
         return router();
     }
 
+    if (route.admin && (!state.user || state.user.role !== 'admin')) {
+        window.history.replaceState({}, '', state.user ? '/profile' : '/auth/login');
+        return router();
+    }
+
     try {
         updateNavigation();
         await route.view(match);
@@ -167,6 +173,7 @@ function updateNavigation() {
             <button class="${getNavLinkClass('/search', currentPath)}" data-link="/search">Поиск</button>
             <button class="${getNavLinkClass('/favorites', currentPath)}" data-link="/favorites">Избранное</button>
             <button class="${getNavLinkClass('/profile', currentPath)}" data-link="/profile">Профиль</button>
+            ${state.user.role === 'admin' ? `<button class="${getNavLinkClass('/admin', currentPath)}" data-link="/admin">Админ</button>` : ''}
             <span class="nav-user">${escapeHtml(state.user.name)}</span>
             <button class="nav-button" id="logout-button" type="button">Выйти</button>
         `;
@@ -430,39 +437,43 @@ async function renderProfile() {
     const profile = await apiRequest('/auth/me');
     const myMovies = await apiRequest('/movies?user=me');
     state.myMovies = myMovies;
+    const isAdmin = profile.user.role === 'admin';
 
     setView(`
         <section class="section-block profile-layout">
-            <div class="profile-card">
+            <div class="profile-card profile-card--stacked">
                 <h1>${escapeHtml(profile.user.name)}</h1>
-                <p>${escapeHtml(profile.user.email)}</p>
-                <p>Дата регистрации: ${formatDate(profile.user.created_at)}</p>
+                <p class="profile-field">${escapeHtml(profile.user.email)}</p>
+                <p class="profile-field">Роль: <strong>${escapeHtml(profile.user.role === 'admin' ? 'Администратор' : 'Пользователь')}</strong></p>
+                <p class="profile-field">Дата регистрации: ${formatDate(profile.user.created_at)}</p>
             </div>
 
-            <div class="profile-card">
-                <div class="section-head compact">
-                    <div>
-                        <span class="eyebrow">CRUD</span>
-                        <h2>Добавить фильм</h2>
+            ${isAdmin ? `
+                <div class="profile-card profile-card--admin">
+                    <div class="section-head compact">
+                        <div>
+                            <span class="eyebrow">CRUD</span>
+                            <h2>Добавить фильм</h2>
+                        </div>
                     </div>
+                    <form id="movie-form" class="auth-form profile-admin-form">
+                        <input class="input-control" name="title" type="text" placeholder="Название" required>
+                        <textarea class="input-control textarea-control" name="description" placeholder="Описание"></textarea>
+                        <input class="input-control" name="poster" type="url" placeholder="Ссылка на постер">
+                        <input class="input-control" name="watch_url" type="url" placeholder="Ссылка на просмотр (YouTube, Vimeo, mp4)">
+                        <div class="filter-grid compact">
+                            <input class="input-control" name="vyear" type="number" placeholder="Год">
+                            <input class="input-control" name="rating" type="number" step="0.1" min="0" max="10" placeholder="Рейтинг">
+                            <input class="input-control" name="genre" type="text" placeholder="Жанр">
+                        </div>
+                        <label class="checkbox-row checkbox-row--centered">
+                            <input name="is_popular" type="checkbox">
+                            <span>Отметить как популярный</span>
+                        </label>
+                        <div id="movie-form-message" class="status-box hidden"></div>
+                    </form>
                 </div>
-                <form id="movie-form" class="auth-form">
-                    <input class="input-control" name="title" type="text" placeholder="Название" required>
-                    <textarea class="input-control textarea-control" name="description" placeholder="Описание"></textarea>
-                    <input class="input-control" name="poster" type="url" placeholder="Ссылка на постер">
-                    <input class="input-control" name="watch_url" type="url" placeholder="Ссылка на просмотр (YouTube, Vimeo, mp4)">
-                    <div class="filter-grid compact">
-                        <input class="input-control" name="vyear" type="number" placeholder="Год">
-                        <input class="input-control" name="rating" type="number" step="0.1" min="0" max="10" placeholder="Рейтинг">
-                        <input class="input-control" name="genre" type="text" placeholder="Жанр">
-                    </div>
-                    <label class="checkbox-row">
-                        <input name="is_popular" type="checkbox">
-                        <span>Отметить как популярный</span>
-                    </label>
-                    <div id="movie-form-message" class="status-box hidden"></div>
-                </form>
-            </div>
+            ` : ''}
         </section>
 
         <section class="section-block">
@@ -472,13 +483,87 @@ async function renderProfile() {
                     <h2>Управление контентом</h2>
                 </div>
             </div>
-            ${renderMovieGrid(myMovies, true)}
+            ${renderMovieGrid(myMovies, isAdmin)}
         </section>
     `);
 
-    document.getElementById('movie-form').addEventListener('submit', submitMovieForm);
+    if (isAdmin) {
+        document.getElementById('movie-form').addEventListener('submit', submitMovieForm);
+    }
     attachMovieCardHandlers();
     attachOwnerActions();
+}
+async function renderAdmin() {
+    const usersResponse = await apiRequest('/users');
+    const profile = await apiRequest('/auth/me');
+
+    setView(`
+        <section class="section-block">
+            <div class="section-head">
+                <div>
+                    <span class="eyebrow">Админ</span>
+                    <h1>Управление системой</h1>
+                </div>
+            </div>
+
+            <div class="admin-grid">
+                <div class="admin-card">
+                    <h2>Пользователи</h2>
+                    <div class="user-list">
+                        ${usersResponse.users.map((user) => `
+                            <div class="user-row">
+                                <form class="edit-user-form" data-user-id="${user.id}">
+                                    <input class="input-control" name="name" type="text" value="${escapeAttribute(user.name)}" required>
+                                    <input class="input-control" name="email" type="email" value="${escapeAttribute(user.email)}" required>
+                                    <select class="input-control" name="role">
+                                        <option value="user" ${user.role === 'user' ? 'selected' : ''}>Пользователь</option>
+                                        <option value="admin" ${user.role === 'admin' ? 'selected' : ''}>Администратор</option>
+                                    </select>
+                                    <input class="input-control" name="keyword" type="text" value="${escapeAttribute(user.keyword || '')}" placeholder="Ключевое слово">
+                                    <div class="form-actions">
+                                        <button class="small-button primary" type="submit">Сохранить</button>
+                                        ${user.id !== profile.user.id ? `<button class="small-button danger" type="button" data-delete-user-id="${user.id}">Удалить</button>` : ''}
+                                    </div>
+                                </form>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            </div>
+        </section>
+    `);
+
+    attachAdminUserActions();
+}
+
+function attachAdminUserActions() {
+    document.querySelectorAll('.edit-user-form').forEach((form) => {
+        form.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const userId = Number(event.currentTarget.dataset.userId);
+            const formData = new FormData(event.currentTarget);
+
+            await apiRequest(`/users/${userId}`, {
+                method: 'PUT',
+                body: JSON.stringify({
+                    name: formData.get('name'),
+                    email: formData.get('email'),
+                    role: formData.get('role'),
+                    keyword: formData.get('keyword')
+                })
+            });
+            await renderAdmin();
+        });
+    });
+
+    document.querySelectorAll('[data-delete-user-id]').forEach((button) => {
+        button.addEventListener('click', async () => {
+            if (confirm('Удалить этого пользователя?')) {
+                await apiRequest(`/users/${button.dataset.deleteUserId}`, { method: 'DELETE' });
+                await renderAdmin();
+            }
+        });
+    });
 }
 async function renderLogin() {
     if (state.user) {
@@ -741,7 +826,11 @@ function attachOwnerActions() {
     document.querySelectorAll('[data-delete-movie-id]').forEach((button) => {
         button.addEventListener('click', async () => {
             await apiRequest(`/movies/${button.dataset.deleteMovieId}`, { method: 'DELETE' });
-            await renderProfile();
+            if (window.location.pathname === '/admin') {
+                await renderAdmin();
+            } else {
+                await renderProfile();
+            }
         });
     });
 }

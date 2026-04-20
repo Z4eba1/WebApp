@@ -233,6 +233,72 @@ button {
     align-content: start;
 }
 
+.profile-card--stacked {
+    justify-items: start;
+    text-align: left;
+    padding: 40px;
+    max-width: 520px;
+    width: 100%;
+    min-height: 260px;
+    display: grid;
+    gap: 14px;
+    margin: 0 auto;
+}
+
+.profile-card--stacked h1 {
+    margin: 0;
+    font-size: 2.4rem;
+    letter-spacing: -0.02em;
+}
+
+.profile-card--stacked .profile-field {
+    color: var(--muted);
+    font-size: 1rem;
+    line-height: 1.8;
+}
+
+.profile-card--stacked .profile-field strong {
+    color: var(--accent-strong);
+}
+
+.profile-card--stacked .profile-field + .profile-field {
+    margin-top: 6px;
+}
+
+.profile-card--admin {
+    padding: 28px 32px 32px;
+}
+
+.profile-card--admin .section-head.compact {
+    justify-content: center;
+    text-align: center;
+}
+
+.profile-card--admin .section-head.compact .eyebrow,
+.profile-card--admin .section-head.compact h2 {
+    margin: 0 auto;
+}
+
+.profile-admin-form {
+    display: grid;
+    gap: 18px;
+    padding: 0 8px;
+}
+
+.profile-admin-form .filter-grid {
+    gap: 14px;
+}
+
+.checkbox-row--centered {
+    justify-content: center;
+}
+
+.profile-admin-form .input-control,
+.profile-admin-form .textarea-control {
+    padding-left: 18px;
+    padding-right: 18px;
+}
+
 .profile-card .eyebrow {
     margin-bottom: 2px;
 }
@@ -973,5 +1039,64 @@ button {
 
     .movie-player-section {
         padding: 20px 15px;
+    }
+}
+
+/* Admin Panel Styles */
+.admin-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 32px;
+    margin-top: 32px;
+}
+
+.admin-card {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 24px;
+    padding: 24px;
+    box-shadow: var(--shadow);
+}
+
+.admin-card h2 {
+    margin: 0 0 20px 0;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1.5rem;
+    color: var(--accent-strong);
+}
+
+.user-list {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+}
+
+.user-row {
+    background: var(--card);
+    border: 1px solid rgba(79, 242, 177, 0.15);
+    border-radius: 16px;
+    padding: 20px;
+}
+
+.edit-user-form {
+    display: grid;
+    gap: 12px;
+}
+
+.edit-user-form .input-control {
+    padding: 12px 14px;
+}
+
+.form-actions {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    margin-top: 8px;
+}
+
+@media (max-width: 900px) {
+    .admin-grid {
+        grid-template-columns: 1fr;
+        gap: 24px;
     }
 }

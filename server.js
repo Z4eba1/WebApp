@@ -42,7 +42,7 @@ function isValidHttpUrl(value) {
 
 function createToken(user) {
     return jwt.sign(
-        { userId: user.id, email: user.email, name: user.name },
+        { userId: user.id, email: user.email, name: user.name, role: user.role || 'user' },
         JWT_SECRET,
         { expiresIn: '7d' }
     );
@@ -160,11 +160,29 @@ async function authenticateToken(req, res, next) {
 
     try {
         const payload = jwt.verify(token, JWT_SECRET);
-        req.user = payload;
+        req.user = { ...payload, role: payload.role || 'user' };
         next();
     } catch (error) {
         return res.status(401).json({ message: 'Сессия истекла или токен недействителен.' });
     }
+}
+
+function ensureAdmin(req, res, next) {
+    if (!req.user || !req.user.userId) {
+        return res.status(403).json({ message: 'Требуются права администратора.' });
+    }
+
+    pool.execute('SELECT role FROM users WHERE id = ?', [req.user.userId])
+        .then(([rows]) => {
+            if (!rows.length || rows[0].role !== 'admin') {
+                return res.status(403).json({ message: 'Требуются права администратора.' });
+            }
+            next();
+        })
+        .catch((error) => {
+            console.error('Ensure admin error:', error);
+            res.status(500).json({ message: 'Ошибка сервера.' });
+        });
 }
 
 async function getColumnNames(tableName) {
@@ -200,6 +218,7 @@ async function initializeDatabase() {
             password_hash VARCHAR(255) NOT NULL,
             name VARCHAR(255) NOT NULL,
             keyword VARCHAR(100) NULL,
+            role VARCHAR(20) NOT NULL DEFAULT 'user',
             created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
         )
     `);
@@ -238,6 +257,9 @@ async function initializeDatabase() {
     if (!userColumns.includes('keyword')) {
         await pool.execute('ALTER TABLE users ADD COLUMN keyword VARCHAR(100) NULL');
     }
+    if (!userColumns.includes('role')) {
+        await pool.execute("ALTER TABLE users ADD COLUMN role VARCHAR(20) NOT NULL DEFAULT 'user'");
+    }
     if (!userColumns.includes('created_at')) {
         await pool.execute('ALTER TABLE users ADD COLUMN created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP');
     }
@@ -272,8 +294,8 @@ async function initializeDatabase() {
     if (!users.length) {
         const passwordHash = await bcrypt.hash('demo1234', 10);
         const [result] = await pool.execute(
-            'INSERT INTO users (email, password_hash, name) VALUES (?, ?, ?)',
-            ['demo@kinoweb.local', passwordHash, 'Demo User']
+            'INSERT INTO users (email, password_hash, name, role) VALUES (?, ?, ?, ?)',
+            ['demo@kinoweb.local', passwordHash, 'Demo Admin', 'admin']
         );
         authorId = result.insertId;
     } else {
@@ -321,7 +343,7 @@ app.post('/api/auth/register', async (req, res) => {
             [payload.email, passwordHash, payload.name, payload.keyword]
         );
 
-        const user = { id: result.insertId, email: payload.email, name: payload.name };
+        const user = { id: result.insertId, email: payload.email, name: payload.name, role: 'user' };
         const token = createToken(user);
 
         res.status(201).json({
@@ -385,7 +407,7 @@ app.post('/api/auth/login', async (req, res) => {
         }
 
         const [users] = await pool.execute(
-            'SELECT id, email, password_hash, name, created_at FROM users WHERE email = ?',
+            'SELECT id, email, password_hash, name, role, created_at FROM users WHERE email = ?',
             [email]
         );
 
@@ -408,6 +430,7 @@ app.post('/api/auth/login', async (req, res) => {
                 id: user.id,
                 email: user.email,
                 name: user.name,
+                role: user.role,
                 created_at: user.created_at
             }
         });
@@ -420,7 +443,7 @@ app.post('/api/auth/login', async (req, res) => {
 app.get('/api/auth/me', authenticateToken, async (req, res) => {
     try {
         const [users] = await pool.execute(
-            'SELECT id, email, name, created_at FROM users WHERE id = ?',
+            'SELECT id, email, name, role, created_at FROM users WHERE id = ?',
             [req.user.userId]
         );
 
@@ -541,7 +564,7 @@ app.get('/api/movies/:id', async (req, res) => {
     }
 });
 
-app.post('/api/movies', authenticateToken, async (req, res) => {
+app.post('/api/movies', authenticateToken, ensureAdmin, async (req, res) => {
     try {
         const payload = {
             title: String(req.body.title || '').trim(),
@@ -593,7 +616,7 @@ app.post('/api/movies', authenticateToken, async (req, res) => {
     }
 });
 
-app.put('/api/movies/:id', authenticateToken, ensureMovieOwner, async (req, res) => {
+app.put('/api/movies/:id', authenticateToken, ensureAdmin, async (req, res) => {
     try {
         const payload = {
             title: String(req.body.title || '').trim(),
@@ -646,13 +669,106 @@ app.put('/api/movies/:id', authenticateToken, ensureMovieOwner, async (req, res)
     }
 });
 
-app.delete('/api/movies/:id', authenticateToken, ensureMovieOwner, async (req, res) => {
+app.delete('/api/movies/:id', authenticateToken, ensureAdmin, async (req, res) => {
     try {
         await pool.execute('DELETE FROM movies WHERE id = ?', [Number(req.params.id)]);
         res.json({ message: 'Фильм удалён.' });
     } catch (error) {
         console.error('Delete movie error:', error);
         res.status(500).json({ message: 'Не удалось удалить фильм.' });
+    }
+});
+
+app.get('/api/users', authenticateToken, ensureAdmin, async (req, res) => {
+    try {
+        const [users] = await pool.execute(
+            'SELECT id, email, name, role, keyword, created_at FROM users ORDER BY created_at DESC'
+        );
+
+        res.json({ users });
+    } catch (error) {
+        console.error('Get users error:', error);
+        res.status(500).json({ message: 'Не удалось получить список пользователей.' });
+    }
+});
+
+app.put('/api/users/:id', authenticateToken, ensureAdmin, async (req, res) => {
+    try {
+        const userId = Number(req.params.id);
+        if (!Number.isInteger(userId)) {
+            return res.status(400).json({ message: 'Некорректный идентификатор пользователя.' });
+        }
+
+        const updates = [];
+        const values = [];
+
+        if (req.body.name !== undefined) {
+            updates.push('name = ?');
+            values.push(String(req.body.name).trim());
+        }
+        if (req.body.email !== undefined) {
+            updates.push('email = ?');
+            values.push(String(req.body.email).trim().toLowerCase());
+        }
+        if (req.body.role !== undefined) {
+            const role = String(req.body.role).trim();
+            if (!['user', 'admin'].includes(role)) {
+                return res.status(400).json({ message: 'Неверная роль пользователя.' });
+            }
+            updates.push('role = ?');
+            values.push(role);
+        }
+        if (req.body.keyword !== undefined) {
+            updates.push('keyword = ?');
+            values.push(String(req.body.keyword).trim());
+        }
+
+        if (!updates.length) {
+            return res.status(400).json({ message: 'Нет данных для обновления.' });
+        }
+
+        values.push(userId);
+        await pool.execute(
+            `UPDATE users SET ${updates.join(', ')} WHERE id = ?`,
+            values
+        );
+
+        const [rows] = await pool.execute(
+            'SELECT id, email, name, role, keyword, created_at FROM users WHERE id = ?',
+            [userId]
+        );
+
+        if (!rows.length) {
+            return res.status(404).json({ message: 'Пользователь не найден.' });
+        }
+
+        res.json({ message: 'Пользователь обновлён.', user: rows[0] });
+    } catch (error) {
+        console.error('Update user error:', error);
+        res.status(500).json({ message: 'Не удалось обновить пользователя.' });
+    }
+});
+
+app.delete('/api/users/:id', authenticateToken, ensureAdmin, async (req, res) => {
+    try {
+        const userId = Number(req.params.id);
+        if (!Number.isInteger(userId)) {
+            return res.status(400).json({ message: 'Некорректный идентификатор пользователя.' });
+        }
+
+        if (userId === req.user.userId) {
+            return res.status(400).json({ message: 'Нельзя удалить собственный аккаунт.' });
+        }
+
+        const [result] = await pool.execute('DELETE FROM users WHERE id = ?', [userId]);
+        if (!result.affectedRows) {
+            return res.status(404).json({ message: 'Пользователь не найден.' });
+        }
+
+        res.json({ message: 'Пользователь удалён.' });
+    } catch (error) {
+        console.error('Delete user error:', error);
+        res.status(500).json({ message: 'Не удалось удалить пользователя.' });
     }
 });
 

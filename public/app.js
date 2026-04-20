@@ -325,7 +325,6 @@ function renderCatalogMarkup(movies, values = {}) {
                 <input class="input-control" name="genre" type="text" placeholder="Жанр" value="${escapeAttribute(values.genre || '')}">
                 <input class="input-control" name="year" type="number" placeholder="Год" value="${escapeAttribute(values.year || '')}">
                 <input class="input-control" name="rating" type="number" min="0" max="10" step="0.1" placeholder="Мин. рейтинг" value="${escapeAttribute(values.rating || '')}">
-                <button class="primary-button" type="submit">Применить</button>
             </form>
 
             ${renderMovieGrid(movies)}
@@ -366,18 +365,53 @@ async function renderSearch() {
             </div>
             <form id="search-form" class="search-row">
                 <input class="input-control search-input" id="search-input" type="search" placeholder="Введите название, жанр или описание">
-                <button class="primary-button" type="submit">Искать</button>
             </form>
             <div id="search-results"></div>
         </section>
     `);
 
-    document.getElementById('search-form').addEventListener('submit', async (event) => {
-        event.preventDefault();
-        const query = document.getElementById('search-input').value.trim();
-        const results = query ? await apiRequest(`/movies/search?q=${encodeURIComponent(query)}`) : [];
-        document.getElementById('search-results').innerHTML = renderMovieGrid(results);
+    const searchForm = document.getElementById('search-form');
+    const searchInput = document.getElementById('search-input');
+    const searchResults = document.getElementById('search-results');
+    let searchRequestId = 0;
+    let debounceTimer = null;
+
+    const runSearch = async () => {
+        const query = searchInput.value.trim();
+        const currentRequestId = ++searchRequestId;
+
+        if (!query) {
+            searchResults.innerHTML = '';
+            return;
+        }
+
+        const results = await apiRequest(`/movies/search?q=${encodeURIComponent(query)}`);
+        if (currentRequestId !== searchRequestId) {
+            return;
+        }
+
+        searchResults.innerHTML = renderMovieGrid(results);
         attachMovieCardHandlers();
+    };
+
+    searchForm.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        clearTimeout(debounceTimer);
+        await runSearch();
+    });
+
+    searchInput.addEventListener('input', () => {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => {
+            runSearch().catch((error) => {
+                searchResults.innerHTML = `
+                    <div class="empty-state">
+                        <h3>Поиск временно недоступен</h3>
+                        <p>${escapeHtml(error.message)}</p>
+                    </div>
+                `;
+            });
+        }, 250);
     });
 }
 
@@ -431,7 +465,6 @@ async function renderProfile() {
                         <input name="is_popular" type="checkbox">
                         <span>Отметить как популярный</span>
                     </label>
-                    <button class="primary-button" type="submit">Сохранить фильм</button>
                     <div id="movie-form-message" class="status-box hidden"></div>
                 </form>
             </div>
@@ -570,7 +603,6 @@ async function renderRecover() {
                     <input class="input-control" name="email" type="email" placeholder="Email" required>
                     <input class="input-control" name="keyword" type="text" placeholder="Ключевое слово" minlength="3" required>
                     <input class="input-control" name="newPassword" type="password" placeholder="Новый пароль" minlength="6" required>
-                    <button class="primary-button" type="submit">Обновить пароль</button>
                     <div id="recover-message" class="status-box hidden"></div>
                 </form>
                 <p class="form-note">Вернуться ко входу? <button class="inline-link" data-link="/auth/login" type="button">Открыть страницу входа</button></p>
@@ -779,4 +811,5 @@ function escapeHtml(value) {
 function escapeAttribute(value) {
     return escapeHtml(value);
 }
+
 

@@ -1,12 +1,14 @@
 const API_URL = '/api';
 const TOKEN_KEY = 'kinoweb_token';
+const MOBILE_BREAKPOINT = 640;
 
 const state = {
     token: localStorage.getItem(TOKEN_KEY),
     user: null,
     favorites: [],
     movies: [],
-    myMovies: []
+    myMovies: [],
+    mobileNavOpen: false
 };
 
 const routes = [
@@ -29,8 +31,18 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 function bindGlobalEvents() {
     document.body.addEventListener('click', (event) => {
+        const toggle = event.target.closest('#nav-toggle');
+        if (toggle) {
+            event.preventDefault();
+            toggleMobileNav();
+            return;
+        }
+
         const target = event.target.closest('[data-link]');
         if (!target) {
+            if (state.mobileNavOpen && !event.target.closest('.site-header')) {
+                closeMobileNav();
+            }
             return;
         }
 
@@ -39,6 +51,7 @@ function bindGlobalEvents() {
     });
 
     window.addEventListener('popstate', router);
+    window.addEventListener('resize', handleViewportChange);
 }
 
 async function bootstrapSession() {
@@ -59,6 +72,7 @@ async function bootstrapSession() {
 }
 
 function navigate(path) {
+    closeMobileNav();
     window.history.pushState({}, '', path);
     router();
 }
@@ -101,14 +115,15 @@ async function router() {
 
 function updateNavigation() {
     const nav = document.getElementById('site-nav');
+    const currentPath = window.location.pathname;
 
     if (state.user) {
         nav.innerHTML = `
-            <button class="nav-link" data-link="/">Главная</button>
-            <button class="nav-link" data-link="/catalog">Каталог</button>
-            <button class="nav-link" data-link="/search">Поиск</button>
-            <button class="nav-link" data-link="/favorites">Избранное</button>
-            <button class="nav-link" data-link="/profile">Профиль</button>
+            <button class="${getNavLinkClass('/', currentPath)}" data-link="/">Главная</button>
+            <button class="${getNavLinkClass('/catalog', currentPath)}" data-link="/catalog">Каталог</button>
+            <button class="${getNavLinkClass('/search', currentPath)}" data-link="/search">Поиск</button>
+            <button class="${getNavLinkClass('/favorites', currentPath)}" data-link="/favorites">Избранное</button>
+            <button class="${getNavLinkClass('/profile', currentPath)}" data-link="/profile">Профиль</button>
             <span class="nav-user">${escapeHtml(state.user.name)}</span>
             <button class="nav-button" id="logout-button" type="button">Выйти</button>
         `;
@@ -117,16 +132,74 @@ function updateNavigation() {
             clearSession();
             navigate('/auth/login');
         });
+        syncNavigationState();
         return;
     }
 
     nav.innerHTML = `
-        <button class="nav-link" data-link="/">Главная</button>
-        <button class="nav-link" data-link="/catalog">Каталог</button>
-        <button class="nav-link" data-link="/search">Поиск</button>
-        <button class="nav-link" data-link="/auth/login">Вход</button>
+        <button class="${getNavLinkClass('/', currentPath)}" data-link="/">Главная</button>
+        <button class="${getNavLinkClass('/catalog', currentPath)}" data-link="/catalog">Каталог</button>
+        <button class="${getNavLinkClass('/search', currentPath)}" data-link="/search">Поиск</button>
+        <button class="${getNavLinkClass('/auth/login', currentPath)}" data-link="/auth/login">Вход</button>
         <button class="nav-button" data-link="/auth/register" type="button">Регистрация</button>
     `;
+
+    syncNavigationState();
+}
+
+function getNavLinkClass(path, currentPath) {
+    return currentPath === path ? 'nav-link is-active' : 'nav-link';
+}
+
+function isMobileViewport() {
+    return window.innerWidth <= MOBILE_BREAKPOINT;
+}
+
+function toggleMobileNav() {
+    if (!isMobileViewport()) {
+        return;
+    }
+
+    state.mobileNavOpen = !state.mobileNavOpen;
+    syncNavigationState();
+}
+
+function closeMobileNav() {
+    if (!state.mobileNavOpen) {
+        return;
+    }
+
+    state.mobileNavOpen = false;
+    syncNavigationState();
+}
+
+function handleViewportChange() {
+    if (!isMobileViewport()) {
+        state.mobileNavOpen = false;
+    }
+
+    syncNavigationState();
+}
+
+function syncNavigationState() {
+    const header = document.querySelector('.site-header');
+    const nav = document.getElementById('site-nav');
+    const toggle = document.getElementById('nav-toggle');
+    const isOpen = isMobileViewport() && state.mobileNavOpen;
+
+    if (!header || !nav || !toggle) {
+        return;
+    }
+
+    header.classList.toggle('nav-open', isOpen);
+    nav.classList.toggle('is-open', isOpen);
+    toggle.setAttribute('aria-expanded', String(isOpen));
+    toggle.setAttribute('aria-label', isOpen ? 'Close navigation' : 'Open navigation');
+    nav.setAttribute('aria-hidden', String(isMobileViewport() && !isOpen));
+
+    nav.querySelectorAll('button, a').forEach((item) => {
+        item.tabIndex = isMobileViewport() && !isOpen ? -1 : 0;
+    });
 }
 
 function setView(html) {
@@ -662,3 +735,4 @@ function escapeHtml(value) {
 function escapeAttribute(value) {
     return escapeHtml(value);
 }
+

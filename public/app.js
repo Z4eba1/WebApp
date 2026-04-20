@@ -1,4 +1,4 @@
-const APP_CONFIG = {
+﻿const APP_CONFIG = {
     apiBaseUrl: '/api',
     storageKeys: {
         token: 'kinoweb_token'
@@ -156,7 +156,6 @@ function renderRouteError(error) {
         </section>
     `);
 }
-
 function updateNavigation() {
     const nav = document.getElementById('site-nav');
     const currentPath = window.location.pathname;
@@ -190,7 +189,6 @@ function updateNavigation() {
 
     syncNavigationState();
 }
-
 function getNavLinkClass(path, currentPath) {
     return currentPath === path ? 'nav-link is-active' : 'nav-link';
 }
@@ -259,7 +257,7 @@ async function renderHome() {
             <div class="hero-text">
                 <span class="eyebrow">KinoWeb</span>
                 <h1>Смотри, сохраняй и управляй своей коллекцией фильмов</h1>
-                    <button class="primary-button" id ="catalog-but" data-link="/catalog" type="button">Открыть каталог</button>
+                <button class="primary-button" id ="catalog-but" data-link="/catalog" type="button">Открыть каталог</button>
             </div>
             <div class="hero-panel">
                 <div class="stat-card">
@@ -301,7 +299,6 @@ async function renderHome() {
 
     attachMovieCardHandlers();
 }
-
 async function renderCatalog() {
     const movies = await apiRequest('/movies');
     state.movies = movies;
@@ -331,7 +328,6 @@ function renderCatalogMarkup(movies, values = {}) {
         </section>
     `;
 }
-
 function bindCatalogFilters() {
     document.getElementById('catalog-filters').addEventListener('submit', async (event) => {
         event.preventDefault();
@@ -414,7 +410,6 @@ async function renderSearch() {
         }, 250);
     });
 }
-
 async function renderFavorites() {
     state.favorites = await apiRequest('/favorites');
 
@@ -431,7 +426,6 @@ async function renderFavorites() {
 
     attachMovieCardHandlers();
 }
-
 async function renderProfile() {
     const profile = await apiRequest('/auth/me');
     const myMovies = await apiRequest('/movies?user=me');
@@ -456,6 +450,7 @@ async function renderProfile() {
                     <input class="input-control" name="title" type="text" placeholder="Название" required>
                     <textarea class="input-control textarea-control" name="description" placeholder="Описание"></textarea>
                     <input class="input-control" name="poster" type="url" placeholder="Ссылка на постер">
+                    <input class="input-control" name="watch_url" type="url" placeholder="Ссылка на просмотр (YouTube, Vimeo, mp4)">
                     <div class="filter-grid compact">
                         <input class="input-control" name="vyear" type="number" placeholder="Год">
                         <input class="input-control" name="rating" type="number" step="0.1" min="0" max="10" placeholder="Рейтинг">
@@ -485,7 +480,6 @@ async function renderProfile() {
     attachMovieCardHandlers();
     attachOwnerActions();
 }
-
 async function renderLogin() {
     if (state.user) {
         navigate('/profile');
@@ -500,7 +494,7 @@ async function renderLogin() {
                 <form id="login-form" class="auth-form">
                     <input class="input-control" name="email" type="email" placeholder="Email" required>
                     <input class="input-control" name="password" type="password" placeholder="Пароль" minlength="6" required>
-                    <button class="primary-button" id="catalog-but" type="submit">Войти</button>
+                    <button class="primary-button" id ="catalog-but" type="submit">Войти</button>
                     <div id="login-message" class="status-box hidden"></div>
                 </form>
                 <p class="form-note">Нет аккаунта? <button class="inline-link" data-link="/auth/register" type="button">Зарегистрироваться</button></p>
@@ -534,7 +528,6 @@ async function renderLogin() {
         }
     });
 }
-
 async function renderRegister() {
     if (state.user) {
         navigate('/profile');
@@ -586,7 +579,6 @@ async function renderRegister() {
         }
     });
 }
-
 async function renderRecover() {
     if (state.user) {
         navigate('/profile');
@@ -598,11 +590,12 @@ async function renderRecover() {
             <div class="auth-card">
                 <span class="eyebrow">Восстановление</span>
                 <h1>Сброс пароля</h1>
-                <p>Введите email, ключевое слово и новый пароль. Если данные совпадут, пароль обновится сразу.</p>
+                <p>Введите email, ключевое слово и новый пароль.</p>
                 <form id="recover-form" class="auth-form">
                     <input class="input-control" name="email" type="email" placeholder="Email" required>
                     <input class="input-control" name="keyword" type="text" placeholder="Ключевое слово" minlength="3" required>
                     <input class="input-control" name="newPassword" type="password" placeholder="Новый пароль" minlength="6" required>
+                    <button class="primary-button" type="submit">Сбросить пароль</button>
                     <div id="recover-message" class="status-box hidden"></div>
                 </form>
                 <p class="form-note">Вернуться ко входу? <button class="inline-link" data-link="/auth/login" type="button">Открыть страницу входа</button></p>
@@ -610,7 +603,8 @@ async function renderRecover() {
         </section>
     `);
 
-    document.getElementById('recover-form').addEventListener('submit', async (event) => {
+    const recoverForm = document.getElementById('recover-form');
+    recoverForm.addEventListener('submit', async (event) => {
         event.preventDefault();
         const formData = new FormData(event.currentTarget);
         const messageBox = document.getElementById('recover-message');
@@ -626,13 +620,12 @@ async function renderRecover() {
             });
 
             showStatus(messageBox, data.message, 'success');
-            event.currentTarget.reset();
+            recoverForm.reset();
         } catch (error) {
             showStatus(messageBox, error.message, 'error');
         }
     });
 }
-
 async function renderMovieDetail(match) {
     const movie = await apiRequest(`/movies/${match[1]}`);
     const isFavorite = state.favorites.some((item) => item.id === movie.id);
@@ -647,8 +640,10 @@ async function renderMovieDetail(match) {
                 <h1>${escapeHtml(movie.title)}</h1>
                 <p class="detail-meta">Год: ${movie.vyear || 'Не указан'} · Рейтинг: ${Number(movie.rating).toFixed(1)} · Автор: ${escapeHtml(movie.author || 'Неизвестно')}</p>
                 <p class="detail-description">${escapeHtml(movie.description || 'Описание пока отсутствует.')}</p>
+                ${renderMovieWatchBlock(movie)}
                 <div class="hero-actions">
                     ${state.user ? `<button class="primary-button" id="favorite-toggle" type="button">${isFavorite ? 'Убрать из избранного' : 'Добавить в избранное'}</button>` : `<button class="primary-button" data-link="/auth/login" type="button">Войти, чтобы добавить в избранное</button>`}
+                    ${movie.watch_url ? `<a class="ghost-button watch-link" href="${escapeAttribute(movie.watch_url)}" target="_blank" rel="noreferrer">Смотреть в новой вкладке</a>` : ''}
                     <button class="ghost-button" data-link="/catalog" type="button">Назад к каталогу</button>
                 </div>
             </div>
@@ -662,7 +657,6 @@ async function renderMovieDetail(match) {
         });
     }
 }
-
 async function submitMovieForm(event) {
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
@@ -675,6 +669,7 @@ async function submitMovieForm(event) {
                 title: formData.get('title'),
                 description: formData.get('description'),
                 poster: formData.get('poster'),
+                watch_url: formData.get('watch_url'),
                 vyear: formData.get('vyear'),
                 rating: formData.get('rating'),
                 genre: formData.get('genre'),
@@ -766,6 +761,7 @@ function renderMovieGrid(movies, canDelete = false) {
                     <article class="movie-card">
                         <div class="movie-cover">
                             <img src="${escapeAttribute(movie.poster || 'https://placehold.co/600x900/102033/F3EDE0?text=KinoWeb')}" alt="${escapeAttribute(movie.title)}">
+                            ${movie.watch_url ? '<span class="movie-badge">Смотреть</span>' : ''}
                         </div>
                         <div class="movie-content">
                             <div class="movie-topline">
@@ -777,7 +773,7 @@ function renderMovieGrid(movies, canDelete = false) {
                             <div class="movie-footer">
                                 <strong>${Number(movie.rating).toFixed(1)}</strong>
                                 <div class="card-actions">
-                                    <button class="small-button" data-link="/detail/${movie.id}" type="button">Подробнее</button>
+                                    ${movie.watch_url ? `<button class="small-button accent" data-link="/detail/${movie.id}" type="button">Смотреть</button>` : ''}
                                     <button class="small-button accent" data-favorite-id="${movie.id}" type="button">${isFavorite ? 'Убрать' : 'В избранное'}</button>
                                     ${canDelete ? `<button class="small-button danger" data-delete-movie-id="${movie.id}" type="button">Удалить</button>` : ''}
                                 </div>
@@ -789,7 +785,118 @@ function renderMovieGrid(movies, canDelete = false) {
         </div>
     `;
 }
+function getMoviePlayerConfig(watchUrl) {
+    if (!watchUrl) {
+        return null;
+    }
 
+    try {
+        const parsedUrl = new URL(watchUrl);
+        const hostname = parsedUrl.hostname.replace(/^www\./, '');
+        const pathname = parsedUrl.pathname;
+        const directVideoPattern = /\.(mp4|webm|ogg)$/i;
+
+        if (hostname === 'youtu.be') {
+            const videoId = pathname.slice(1);
+            return videoId ? { type: 'embed', src: `https://www.youtube.com/embed/${videoId}?rel=0` } : null;
+        }
+
+        if (hostname.includes('youtube.com')) {
+            if (pathname === '/watch') {
+                const videoId = parsedUrl.searchParams.get('v');
+                return videoId ? { type: 'embed', src: `https://www.youtube.com/embed/${videoId}?rel=0` } : null;
+            }
+
+            if (pathname.startsWith('/embed/')) {
+                return { type: 'embed', src: watchUrl };
+            }
+        }
+
+        if (hostname === 'vimeo.com') {
+            const videoId = pathname.split('/').filter(Boolean)[0];
+            return videoId ? { type: 'embed', src: `https://player.vimeo.com/video/${videoId}` } : null;
+        }
+
+        if (hostname === 'player.vimeo.com' && pathname.startsWith('/video/')) {
+            return { type: 'embed', src: watchUrl };
+        }
+
+        if (hostname.includes('rutube.ru')) {
+            const parts = pathname.split('/').filter(Boolean);
+            const videoIndex = parts.indexOf('video');
+            const videoId = videoIndex >= 0 ? parts[videoIndex + 1] : null;
+            return videoId ? { type: 'embed', src: `https://rutube.ru/play/embed/${videoId}` } : null;
+        }
+
+        if (directVideoPattern.test(pathname)) {
+            return { type: 'video', src: watchUrl };
+        }
+
+        return { type: 'external', src: watchUrl };
+    } catch (error) {
+        return null;
+    }
+}
+
+function renderMovieWatchBlock(movie) {
+    const playerConfig = getMoviePlayerConfig(movie.watch_url);
+
+    if (!playerConfig) {
+        return `
+            <section class="watch-panel watch-panel-empty">
+                <div>
+                    <span class="eyebrow">Просмотр</span>
+                    <h2>Источник пока не добавлен</h2>
+                    <p>Для этого фильма ещё нет ссылки на просмотр. Её можно добавить при создании фильма в личном кабинете.</p>
+                </div>
+            </section>
+        `;
+    }
+
+    if (playerConfig.type === 'video') {
+        return `
+            <section class="watch-panel">
+                <div class="watch-panel-head">
+                    <div>
+                        <span class="eyebrow">Просмотр</span>
+                        <h2>Смотрите прямо на странице</h2>
+                    </div>
+                </div>
+                <div class="watch-frame video-frame">
+                    <video controls preload="metadata" poster="${escapeAttribute(movie.poster || '')}">
+                        <source src="${escapeAttribute(playerConfig.src)}">
+                    </video>
+                </div>
+            </section>
+        `;
+    }
+
+    if (playerConfig.type === 'embed') {
+        return `
+            <section class="watch-panel">
+                <div class="watch-panel-head">
+                    <div>
+                        <span class="eyebrow">Просмотр</span>
+                        <h2>Смотрите прямо на странице</h2>
+                    </div>
+                </div>
+                <div class="watch-frame">
+                    <iframe src="${escapeAttribute(playerConfig.src)}" title="${escapeAttribute(movie.title)}" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>
+                </div>
+            </section>
+        `;
+    }
+
+    return `
+        <section class="watch-panel watch-panel-empty">
+            <div>
+                <span class="eyebrow">Просмотр</span>
+                <h2>Доступен внешний источник</h2>
+                <p>Этот фильм открывается на внешнем сайте. Нажмите кнопку выше, чтобы перейти к просмотру.</p>
+            </div>
+        </section>
+    `;
+}
 function showStatus(element, text, type) {
     element.textContent = text;
     element.className = `status-box ${type}`;
@@ -811,5 +918,6 @@ function escapeHtml(value) {
 function escapeAttribute(value) {
     return escapeHtml(value);
 }
+
 
 

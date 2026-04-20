@@ -31,6 +31,15 @@ const pool = mysql.createPool({
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+function isValidHttpUrl(value) {
+    try {
+        const parsedUrl = new URL(value);
+        return parsedUrl.protocol === 'http:' || parsedUrl.protocol === 'https:';
+    } catch (error) {
+        return false;
+    }
+}
+
 function createToken(user) {
     return jwt.sign(
         { userId: user.id, email: user.email, name: user.name },
@@ -45,6 +54,7 @@ function normalizeMovie(movie) {
         title: movie.title,
         description: movie.description,
         poster: movie.poster,
+        watch_url: movie.watch_url,
         vyear: movie.vyear,
         rating: Number(movie.rating),
         genre: movie.genre,
@@ -109,6 +119,14 @@ function validateMovieBody(body) {
 
     if (body.poster && String(body.poster).trim().length > 500) {
         errors.push('Ссылка на постер слишком длинная.');
+    }
+
+    if (body.watch_url && String(body.watch_url).trim().length > 1000) {
+        errors.push('Ссылка на видео слишком длинная.');
+    }
+
+    if (body.watch_url && !isValidHttpUrl(String(body.watch_url).trim())) {
+        errors.push('Укажите корректную ссылку на просмотр.');
     }
 
     if (body.vyear !== undefined && body.vyear !== null && body.vyear !== '') {
@@ -193,6 +211,7 @@ async function initializeDatabase() {
             title VARCHAR(255) NOT NULL,
             description TEXT NULL,
             poster VARCHAR(500) NULL,
+            watch_url VARCHAR(1000) NULL,
             vyear INT NULL,
             rating DECIMAL(3,1) NOT NULL DEFAULT 0,
             genre VARCHAR(100) NULL,
@@ -231,6 +250,9 @@ async function initializeDatabase() {
         await pool.execute('ALTER TABLE movies CHANGE COLUMN year vyear INT NULL');
     } else if (!movieColumns.includes('vyear')) {
         await pool.execute('ALTER TABLE movies ADD COLUMN vyear INT NULL');
+    }
+    if (!movieColumns.includes('watch_url')) {
+        await pool.execute('ALTER TABLE movies ADD COLUMN watch_url VARCHAR(1000) NULL');
     }
     if (!movieColumns.includes('created_at')) {
         await pool.execute('ALTER TABLE movies ADD COLUMN created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP');
@@ -525,6 +547,7 @@ app.post('/api/movies', authenticateToken, async (req, res) => {
             title: String(req.body.title || '').trim(),
             description: String(req.body.description || '').trim(),
             poster: String(req.body.poster || '').trim(),
+            watch_url: String(req.body.watch_url || '').trim(),
             vyear: req.body.vyear === '' ? null : req.body.vyear,
             rating: req.body.rating === '' ? 0 : req.body.rating,
             genre: String(req.body.genre || '').trim(),
@@ -537,13 +560,14 @@ app.post('/api/movies', authenticateToken, async (req, res) => {
         }
 
         const [result] = await pool.execute(
-            `INSERT INTO movies (user_id, title, description, poster, vyear, rating, genre, is_popular)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+            `INSERT INTO movies (user_id, title, description, poster, watch_url, vyear, rating, genre, is_popular)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [
                 req.user.userId,
                 payload.title,
                 payload.description || null,
                 payload.poster || null,
+                payload.watch_url || null,
                 payload.vyear ? Number(payload.vyear) : null,
                 Number(payload.rating || 0),
                 payload.genre || null,
@@ -575,6 +599,7 @@ app.put('/api/movies/:id', authenticateToken, ensureMovieOwner, async (req, res)
             title: String(req.body.title || '').trim(),
             description: String(req.body.description || '').trim(),
             poster: String(req.body.poster || '').trim(),
+            watch_url: String(req.body.watch_url || '').trim(),
             vyear: req.body.vyear === '' ? null : req.body.vyear,
             rating: req.body.rating === '' ? 0 : req.body.rating,
             genre: String(req.body.genre || '').trim(),
@@ -588,12 +613,13 @@ app.put('/api/movies/:id', authenticateToken, ensureMovieOwner, async (req, res)
 
         await pool.execute(
             `UPDATE movies
-             SET title = ?, description = ?, poster = ?, vyear = ?, rating = ?, genre = ?, is_popular = ?
+             SET title = ?, description = ?, poster = ?, watch_url = ?, vyear = ?, rating = ?, genre = ?, is_popular = ?
              WHERE id = ?`,
             [
                 payload.title,
                 payload.description || null,
                 payload.poster || null,
+                payload.watch_url || null,
                 payload.vyear ? Number(payload.vyear) : null,
                 Number(payload.rating || 0),
                 payload.genre || null,
@@ -743,3 +769,4 @@ async function start() {
 }
 
 start();
+

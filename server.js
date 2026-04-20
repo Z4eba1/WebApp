@@ -1,5 +1,6 @@
 require('dotenv').config();
 const express = require('express');
+const fs = require('fs/promises');
 const mysql = require('mysql2/promise');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
@@ -9,7 +10,9 @@ const path = require('path');
 const app = express();
 const PORT = Number(process.env.PORT || 3001);
 const JWT_SECRET = process.env.JWT_SECRET || 'supersecretkey';
-const PUBLIC_DIR = path.join(__dirname, 'public');
+const ROOT_DIR = path.resolve(__dirname);
+const PUBLIC_DIR = path.resolve(ROOT_DIR, 'public');
+const INDEX_FILE = path.resolve(PUBLIC_DIR, 'index.html');
 
 app.use(cors());
 app.use(express.json());
@@ -706,8 +709,25 @@ app.get('/api/health', async (req, res) => {
     }
 });
 
-app.get(/^\/(?!api).*/, (req, res) => {
-    res.sendFile(path.join(PUBLIC_DIR, 'index.html'));
+app.use(async (req, res, next) => {
+    const requestPath = req.path || '/';
+
+    if (requestPath.startsWith('/api') || path.extname(requestPath)) {
+        next();
+        return;
+    }
+
+    try {
+        const appShell = await fs.readFile(INDEX_FILE, 'utf8');
+        res.type('html').send(appShell);
+    } catch (error) {
+        console.error('SPA fallback error:', {
+            requestPath,
+            indexFile: INDEX_FILE,
+            message: error.message
+        });
+        res.status(500).send('Failed to load application shell.');
+    }
 });
 
 async function start() {

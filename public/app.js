@@ -1,15 +1,23 @@
-const API_URL = '/api';
-const TOKEN_KEY = 'kinoweb_token';
-const MOBILE_BREAKPOINT = 640;
-
-const state = {
-    token: localStorage.getItem(TOKEN_KEY),
-    user: null,
-    favorites: [],
-    movies: [],
-    myMovies: [],
-    mobileNavOpen: false
+const APP_CONFIG = {
+    apiBaseUrl: '/api',
+    storageKeys: {
+        token: 'kinoweb_token'
+    },
+    mobileBreakpoint: 640
 };
+
+function createInitialState() {
+    return {
+        token: localStorage.getItem(APP_CONFIG.storageKeys.token),
+        user: null,
+        favorites: [],
+        movies: [],
+        myMovies: [],
+        mobileNavOpen: false
+    };
+}
+
+const state = createInitialState();
 
 const routes = [
     { path: '/', view: renderHome },
@@ -77,10 +85,22 @@ function navigate(path) {
     router();
 }
 
+function normalizePath(pathname) {
+    if (!pathname || pathname === '/') {
+        return '/';
+    }
+
+    return pathname.endsWith('/') ? pathname.slice(0, -1) : pathname;
+}
+
 async function router() {
-    const currentPath = window.location.pathname;
+    const currentPath = normalizePath(window.location.pathname);
     let match = null;
     let route = null;
+
+    if (currentPath !== window.location.pathname) {
+        window.history.replaceState({}, '', `${currentPath}${window.location.search}${window.location.hash}`);
+    }
 
     for (const candidate of routes) {
         if (typeof candidate.path === 'string' && candidate.path === currentPath) {
@@ -108,9 +128,33 @@ async function router() {
         return router();
     }
 
+    try {
+        updateNavigation();
+        await route.view(match);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    } catch (error) {
+        renderRouteError(error);
+    }
+}
+
+function renderRouteError(error) {
+    const message = error instanceof Error && error.message
+        ? error.message
+        : 'Не удалось открыть страницу.';
+
     updateNavigation();
-    await route.view(match);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setView(`
+        <section class="section-block">
+            <div class="empty-state">
+                <h3>Не удалось открыть страницу</h3>
+                <p>${escapeHtml(message)}</p>
+                <div class="hero-actions">
+                    <button class="primary-button" data-link="/" type="button">На главную</button>
+                    <button class="ghost-button" data-link="/catalog" type="button">Открыть каталог</button>
+                </div>
+            </div>
+        </section>
+    `);
 }
 
 function updateNavigation() {
@@ -152,7 +196,7 @@ function getNavLinkClass(path, currentPath) {
 }
 
 function isMobileViewport() {
-    return window.innerWidth <= MOBILE_BREAKPOINT;
+    return window.innerWidth <= APP_CONFIG.mobileBreakpoint;
 }
 
 function toggleMobileNav() {
@@ -447,7 +491,7 @@ async function renderLogin() {
             });
 
             state.token = data.token;
-            localStorage.setItem(TOKEN_KEY, data.token);
+            localStorage.setItem(APP_CONFIG.storageKeys.token, data.token);
             state.user = data.user;
             state.favorites = await apiRequest('/favorites');
             updateNavigation();
@@ -499,7 +543,7 @@ async function renderRegister() {
             });
 
             state.token = data.token;
-            localStorage.setItem(TOKEN_KEY, data.token);
+            localStorage.setItem(APP_CONFIG.storageKeys.token, data.token);
             state.user = data.user;
             state.favorites = [];
             updateNavigation();
@@ -655,7 +699,7 @@ async function apiRequest(url, options = {}) {
         headers.Authorization = `Bearer ${state.token}`;
     }
 
-    const response = await fetch(`${API_URL}${url}`, {
+    const response = await fetch(`${APP_CONFIG.apiBaseUrl}${url}`, {
         ...options,
         headers
     });
@@ -670,7 +714,7 @@ async function apiRequest(url, options = {}) {
 }
 
 function clearSession() {
-    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(APP_CONFIG.storageKeys.token);
     state.token = null;
     state.user = null;
     state.favorites = [];

@@ -631,23 +631,61 @@ async function renderMovieDetail(match) {
     const isFavorite = state.favorites.some((item) => item.id === movie.id);
 
     setView(`
-        <section class="detail-layout">
-            <div class="detail-poster">
-                <img src="${escapeAttribute(movie.poster || 'https://placehold.co/600x900/102033/F3EDE0?text=KinoWeb')}" alt="${escapeAttribute(movie.title)}">
-            </div>
-            <div class="detail-info">
-                <span class="eyebrow">${escapeHtml(movie.genre || 'Без жанра')}</span>
-                <h1>${escapeHtml(movie.title)}</h1>
-                <p class="detail-meta">Год: ${movie.vyear || 'Не указан'} · Рейтинг: ${Number(movie.rating).toFixed(1)} · Автор: ${escapeHtml(movie.author || 'Неизвестно')}</p>
-                <p class="detail-description">${escapeHtml(movie.description || 'Описание пока отсутствует.')}</p>
-                ${renderMovieWatchBlock(movie)}
-                <div class="hero-actions">
-                    ${state.user ? `<button class="primary-button" id="favorite-toggle" type="button">${isFavorite ? 'Убрать из избранного' : 'Добавить в избранное'}</button>` : `<button class="primary-button" data-link="/auth/login" type="button">Войти, чтобы добавить в избранное</button>`}
-                    ${movie.watch_url ? `<a class="ghost-button watch-link" href="${escapeAttribute(movie.watch_url)}" target="_blank" rel="noreferrer">Смотреть в новой вкладке</a>` : ''}
-                    <button class="ghost-button" data-link="/catalog" type="button">Назад к каталогу</button>
+        <div class="movie-detail-page">
+            <div class="movie-backdrop" style="background-image: url('${escapeAttribute(movie.poster || 'https://placehold.co/1920x1080/102033/F3EDE0?text=KinoWeb')}')"></div>
+
+            <div class="movie-content-wrapper">
+                <div class="movie-header">
+                    <div class="movie-poster-large">
+                        <img src="${escapeAttribute(movie.poster || 'https://placehold.co/400x600/102033/F3EDE0?text=KinoWeb')}" alt="${escapeAttribute(movie.title)}">
+                    </div>
+
+                    <div class="movie-info">
+                        <div class="movie-meta">
+                            <span class="movie-genre">${escapeHtml(movie.genre || 'Без жанра')}</span>
+                            <span class="movie-year">${movie.vyear || 'Год не указан'}</span>
+                        </div>
+
+                        <h1 class="movie-title">${escapeHtml(movie.title)}</h1>
+
+                        <div class="movie-rating">
+                            <div class="rating-stars">
+                                ${renderStars(Number(movie.rating))}
+                            </div>
+                            <span class="rating-value">${Number(movie.rating).toFixed(1)}</span>
+                        </div>
+
+                        <div class="movie-details">
+                            <div class="detail-item">
+                                <span class="detail-label">Режиссёр:</span>
+                                <span class="detail-value">${escapeHtml(movie.author || 'Неизвестно')}</span>
+                            </div>
+                        </div>
+
+                        <p class="movie-description">${escapeHtml(movie.description || 'Описание пока отсутствует.')}</p>
+
+                        <div class="movie-actions">
+                            ${state.user ? `<button class="action-btn favorite-btn ${isFavorite ? 'active' : ''}" id="favorite-toggle" type="button">
+                                <span class="btn-icon">${isFavorite ? '❤️' : '🤍'}</span>
+                                ${isFavorite ? 'В избранном' : 'В избранное'}
+                            </button>` : `<button class="action-btn login-btn" data-link="/auth/login" type="button">
+                                <span class="btn-icon">🔐</span>
+                                Войти, чтобы добавить в избранное
+                            </button>`}
+
+                            <button class="action-btn back-btn" data-link="/catalog" type="button">
+                                <span class="btn-icon">⬅️</span>
+                                Назад к каталогу
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="movie-player-section">
+                    ${renderMovieWatchBlock(movie)}
                 </div>
             </div>
-        </section>
+        </div>
     `);
 
     if (state.user) {
@@ -761,7 +799,6 @@ function renderMovieGrid(movies, canDelete = false) {
                     <article class="movie-card">
                         <div class="movie-cover">
                             <img src="${escapeAttribute(movie.poster || 'https://placehold.co/600x900/102033/F3EDE0?text=KinoWeb')}" alt="${escapeAttribute(movie.title)}">
-                            ${movie.watch_url ? '<span class="movie-badge">Смотреть</span>' : ''}
                         </div>
                         <div class="movie-content">
                             <div class="movie-topline">
@@ -917,6 +954,18 @@ function escapeHtml(value) {
 
 function escapeAttribute(value) {
     return escapeHtml(value);
+}
+
+function renderStars(rating) {
+    const numRating = Number(rating) || 0;
+    const clampedRating = Math.max(0, Math.min(5, numRating));
+    const fullStars = Math.floor(clampedRating);
+    const hasHalfStar = clampedRating % 1 >= 0.5;
+    const emptyStars = 5 - fullStars - (hasHalfStar ? 1 : 0);
+
+    return '★'.repeat(fullStars) +
+           (hasHalfStar ? '☆' : '') +
+           '☆'.repeat(emptyStars);
 }
 
 

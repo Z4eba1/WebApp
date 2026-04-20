@@ -442,10 +442,64 @@ async function renderProfile() {
     setView(`
         <section class="section-block profile-layout">
             <div class="profile-card profile-card--stacked">
-                <h1>${escapeHtml(profile.user.name)}</h1>
-                <p class="profile-field">${escapeHtml(profile.user.email)}</p>
-                <p class="profile-field">Роль: <strong>${escapeHtml(profile.user.role === 'admin' ? 'Администратор' : 'Пользователь')}</strong></p>
-                <p class="profile-field">Дата регистрации: ${formatDate(profile.user.created_at)}</p>
+                <div class="section-head compact">
+                    <div>
+                        <span class="eyebrow">Профиль</span>
+                        <h2>Мой профиль</h2>
+                    </div>
+                </div>
+                
+                <div class="profile-edit-field">
+                    <div class="profile-edit-display" data-field="name">
+                        <span class="profile-field-label">Имя:</span>
+                        <span class="profile-field-value">${escapeHtml(profile.user.name)}</span>
+                        <button class="profile-edit-btn" type="button" data-field="name" title="Редактировать">✎</button>
+                    </div>
+                    <div class="profile-edit-form" data-field="name" style="display: none;">
+                        <input class="input-control profile-edit-input" type="text" value="${escapeAttribute(profile.user.name)}" required>
+                        <div class="profile-edit-actions">
+                            <button class="small-button primary profile-save-btn" type="button" data-field="name">Сохранить</button>
+                            <button class="small-button secondary profile-cancel-btn" type="button" data-field="name">Отмена</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="profile-edit-field">
+                    <div class="profile-edit-display" data-field="email">
+                        <span class="profile-field-label">Email:</span>
+                        <span class="profile-field-value">${escapeHtml(profile.user.email)}</span>
+                        <button class="profile-edit-btn" type="button" data-field="email" title="Редактировать">✎</button>
+                    </div>
+                    <div class="profile-edit-form" data-field="email" style="display: none;">
+                        <input class="input-control profile-edit-input" type="email" value="${escapeAttribute(profile.user.email)}" required>
+                        <div class="profile-edit-actions">
+                            <button class="small-button primary profile-save-btn" type="button" data-field="email">Сохранить</button>
+                            <button class="small-button secondary profile-cancel-btn" type="button" data-field="email">Отмена</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="profile-edit-field">
+                    <div class="profile-edit-display" data-field="keyword">
+                        <span class="profile-field-label">Ключевое слово:</span>
+                        <span class="profile-field-value">${escapeHtml(profile.user.keyword || '—')}</span>
+                        <button class="profile-edit-btn" type="button" data-field="keyword" title="Редактировать">✎</button>
+                    </div>
+                    <div class="profile-edit-form" data-field="keyword" style="display: none;">
+                        <input class="input-control profile-edit-input" type="text" value="${escapeAttribute(profile.user.keyword || '')}" required>
+                        <div class="profile-edit-actions">
+                            <button class="small-button primary profile-save-btn" type="button" data-field="keyword">Сохранить</button>
+                            <button class="small-button secondary profile-cancel-btn" type="button" data-field="keyword">Отмена</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="profile-card--info">
+                    <p class="profile-field">Роль: <strong>${escapeHtml(profile.user.role === 'admin' ? 'Администратор' : 'Пользователь')}</strong></p>
+                    <p class="profile-field">Дата регистрации: ${formatDate(profile.user.created_at)}</p>
+                </div>
+
+                <div id="profile-form-message" class="status-box hidden"></div>
             </div>
 
             ${isAdmin ? `
@@ -476,6 +530,7 @@ async function renderProfile() {
             ` : ''}
         </section>
 
+        ${isAdmin ? `
         <section class="section-block">
             <div class="section-head">
                 <div>
@@ -485,7 +540,71 @@ async function renderProfile() {
             </div>
             ${renderMovieGrid(myMovies, isAdmin)}
         </section>
+        ` : ''}
     `);
+
+    // Обработка кнопок редактирования
+    document.querySelectorAll('.profile-edit-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+            const field = btn.dataset.field;
+            const display = document.querySelector(`.profile-edit-display[data-field="${field}"]`);
+            const form = document.querySelector(`.profile-edit-form[data-field="${field}"]`);
+            display.style.display = 'none';
+            form.style.display = 'flex';
+            form.querySelector('.profile-edit-input').focus();
+        });
+    });
+
+    // Кнопки сохранения
+    document.querySelectorAll('.profile-save-btn').forEach((btn) => {
+        btn.addEventListener('click', async () => {
+            const field = btn.dataset.field;
+            const input = document.querySelector(`.profile-edit-form[data-field="${field}"] .profile-edit-input`);
+            const value = input.value.trim();
+            const messageBox = document.getElementById('profile-form-message');
+
+            if (!value) {
+                messageBox.textContent = 'Поле не может быть пустым.';
+                messageBox.classList.remove('hidden');
+                messageBox.classList.add('error');
+                return;
+            }
+
+            try {
+                const updateData = {};
+                updateData[field] = value;
+                
+                const response = await apiRequest('/auth/profile', {
+                    method: 'PUT',
+                    body: JSON.stringify(updateData)
+                });
+
+                messageBox.textContent = 'Профиль обновлен.';
+                messageBox.classList.remove('hidden', 'error');
+                messageBox.classList.add('success');
+                
+                state.user = response.user;
+                setTimeout(() => {
+                    renderProfile();
+                }, 800);
+            } catch (error) {
+                messageBox.textContent = error.message || 'Ошибка при обновлении профиля.';
+                messageBox.classList.remove('hidden');
+                messageBox.classList.add('error');
+            }
+        });
+    });
+
+    // Кнопки отмены
+    document.querySelectorAll('.profile-cancel-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+            const field = btn.dataset.field;
+            const display = document.querySelector(`.profile-edit-display[data-field="${field}"]`);
+            const form = document.querySelector(`.profile-edit-form[data-field="${field}"]`);
+            display.style.display = 'flex';
+            form.style.display = 'none';
+        });
+    });
 
     if (isAdmin) {
         document.getElementById('movie-form').addEventListener('submit', submitMovieForm);

@@ -299,6 +299,111 @@ button {
     padding-right: 18px;
 }
 
+.profile-card--info {
+    margin-top: 24px;
+    padding-top: 24px;
+    border-top: 1px solid rgba(79, 242, 177, 0.15);
+}
+
+.profile-edit-field {
+    padding: 16px 0;
+    border-bottom: 1px solid rgba(79, 242, 177, 0.1);
+}
+
+.profile-edit-field:last-of-type {
+    border-bottom: none;
+}
+
+.profile-edit-display {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    justify-content: space-between;
+}
+
+.profile-field-label {
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.8);
+    min-width: 120px;
+}
+
+.profile-field-value {
+    flex: 1;
+    word-break: break-all;
+}
+
+.profile-edit-btn {
+    background: rgba(79, 242, 177, 0.1);
+    border: 1px solid rgba(79, 242, 177, 0.3);
+    color: #4ff2b1;
+    padding: 6px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.profile-edit-btn:hover {
+    background: rgba(79, 242, 177, 0.2);
+    border-color: rgba(79, 242, 177, 0.5);
+}
+
+.profile-edit-form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.profile-edit-input {
+    padding: 12px 14px;
+    background: var(--input);
+    border: 1px solid rgba(79, 242, 177, 0.3);
+    border-radius: 8px;
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 14px;
+}
+
+.profile-edit-input:focus {
+    outline: none;
+    border-color: #4ff2b1;
+    box-shadow: 0 0 0 2px rgba(79, 242, 177, 0.1);
+}
+
+.profile-edit-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.small-button {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    transition: all 0.2s ease;
+}
+
+.small-button.primary {
+    background: #4ff2b1;
+    color: #0a0a0a;
+}
+
+.small-button.primary:hover {
+    background: #3dd69a;
+}
+
+.small-button.secondary {
+    background: rgba(79, 242, 177, 0.1);
+    color: #4ff2b1;
+    border: 1px solid rgba(79, 242, 177, 0.3);
+}
+
+.small-button.secondary:hover {
+    background: rgba(79, 242, 177, 0.2);
+}
+
 .profile-card .eyebrow {
     margin-bottom: 2px;
 }

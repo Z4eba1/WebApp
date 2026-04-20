@@ -443,7 +443,7 @@ app.post('/api/auth/login', async (req, res) => {
 app.get('/api/auth/me', authenticateToken, async (req, res) => {
     try {
         const [users] = await pool.execute(
-            'SELECT id, email, name, role, created_at FROM users WHERE id = ?',
+            'SELECT id, email, name, role, keyword, created_at FROM users WHERE id = ?',
             [req.user.userId]
         );
 
@@ -455,6 +455,68 @@ app.get('/api/auth/me', authenticateToken, async (req, res) => {
     } catch (error) {
         console.error('Auth me error:', error);
         res.status(500).json({ message: 'Не удалось получить профиль.' });
+    }
+});
+
+app.put('/api/auth/profile', authenticateToken, async (req, res) => {
+    try {
+        const userId = req.user.userId;
+        const updates = [];
+        const values = [];
+
+        if (req.body.name !== undefined) {
+            const name = String(req.body.name).trim();
+            if (name.length < 2) {
+                return res.status(400).json({ message: 'Имя должно содержать не менее 2 символов.' });
+            }
+            updates.push('name = ?');
+            values.push(name);
+        }
+
+        if (req.body.email !== undefined) {
+            const email = String(req.body.email).trim().toLowerCase();
+            if (!emailRegex.test(email)) {
+                return res.status(400).json({ message: 'Укажите корректный email.' });
+            }
+            updates.push('email = ?');
+            values.push(email);
+        }
+
+        if (req.body.keyword !== undefined) {
+            const keyword = String(req.body.keyword).trim();
+            if (keyword.length < 3) {
+                return res.status(400).json({ message: 'Ключевое слово должно содержать не менее 3 символов.' });
+            }
+            updates.push('keyword = ?');
+            values.push(keyword);
+        }
+
+        if (!updates.length) {
+            return res.status(400).json({ message: 'Нет данных для обновления.' });
+        }
+
+        values.push(userId);
+        await pool.execute(
+            `UPDATE users SET ${updates.join(', ')} WHERE id = ?`,
+            values
+        );
+
+        const [rows] = await pool.execute(
+            'SELECT id, email, name, role, keyword, created_at FROM users WHERE id = ?',
+            [userId]
+        );
+
+        if (!rows.length) {
+            return res.status(404).json({ message: 'Пользователь не найден.' });
+        }
+
+        res.json({ 
+            message: 'Профиль обновлен.',
+            user: rows[0]
+        });
+    } catch (error) {
+        console.error('Profile update error:', error);
+        res.status(500).json({ message: 'Не удалось обновить профиль.' });
     }
 });
 

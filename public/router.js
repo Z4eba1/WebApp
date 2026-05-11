@@ -56,7 +56,7 @@ async function bootstrapSession() {
 function navigate(path) {
     closeMobileNav();
     resetScrollPosition();
-    window.history.pushState({}, '', path);
+    window.history.pushState({}, '', withBasePath(path));
     router();
 }
 
@@ -87,11 +87,31 @@ function resetScrollPositionAfterRender() {
 }
 
 function normalizePath(pathname) {
-    if (!pathname || pathname === '/') {
+    const path = stripBasePath(pathname);
+
+    if (!path || path === '/') {
         return '/';
     }
 
-    return pathname.endsWith('/') ? pathname.slice(0, -1) : pathname;
+    return path.endsWith('/') ? path.slice(0, -1) : path;
+}
+
+function stripBasePath(pathname) {
+    if (!APP_CONFIG.basePath || pathname === APP_CONFIG.basePath) {
+        return pathname === APP_CONFIG.basePath ? '/' : pathname;
+    }
+
+    return pathname.startsWith(`${APP_CONFIG.basePath}/`)
+        ? pathname.slice(APP_CONFIG.basePath.length)
+        : pathname;
+}
+
+function withBasePath(path) {
+    if (!APP_CONFIG.basePath || path.startsWith(APP_CONFIG.basePath)) {
+        return path;
+    }
+
+    return `${APP_CONFIG.basePath}${path}`;
 }
 
 async function router() {
@@ -100,7 +120,7 @@ async function router() {
     let route = null;
 
     if (currentPath !== window.location.pathname) {
-        window.history.replaceState({}, '', `${currentPath}${window.location.search}${window.location.hash}`);
+        window.history.replaceState({}, '', `${withBasePath(currentPath)}${window.location.search}${window.location.hash}`);
     }
 
     for (const candidate of routes) {
@@ -127,12 +147,12 @@ async function router() {
     }
 
     if (route.private && !state.user) {
-        window.history.replaceState({}, '', '/auth/login');
+        window.history.replaceState({}, '', withBasePath('/auth/login'));
         return router();
     }
 
     if (route.admin && (!state.user || state.user.role !== 'admin')) {
-        window.history.replaceState({}, '', state.user ? '/profile' : '/auth/login');
+        window.history.replaceState({}, '', withBasePath(state.user ? '/profile' : '/auth/login'));
         return router();
     }
 

@@ -1,6 +1,6 @@
 function updateNavigation() {
     const nav = document.getElementById('site-nav');
-    const currentPath = window.location.pathname;
+    const currentPath = normalizePath(window.location.pathname);
 
     if (state.user) {
         nav.innerHTML = `

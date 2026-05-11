@@ -1,11 +1,22 @@
 ﻿const APP_CONFIG = {
-    apiBaseUrl: '/api',
+    basePath: getAppBasePath(),
+    apiBaseUrl: `${getAppBasePath()}/api`,
     storageKeys: {
         token: 'kinoweb_token'
     },
     catalogPageSize: 9,
     mobileBreakpoint: 1100
 };
+
+function getAppBasePath() {
+    const firstPathSegment = window.location.pathname.split('/').filter(Boolean)[0];
+
+    if (window.location.hostname.endsWith('github.io') && firstPathSegment) {
+        return `/${firstPathSegment}`;
+    }
+
+    return '';
+}
 
 function createInitialState() {
     return {

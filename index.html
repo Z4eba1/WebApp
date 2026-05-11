@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KinoWeb</title>
+    <meta name="description" content="KinoWeb online cinema catalog.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="./public/style.css">
+</head>
+<body>
+    <div class="page-shell">
+        <header class="site-header">
+            <div class="brand-block">
+                <button class="brand-link" data-link="/" type="button">KinoWeb</button>
+            </div>
+            <button
+                class="nav-toggle"
+                id="nav-toggle"
+                type="button"
+                aria-expanded="false"
+                aria-controls="site-nav"
+                aria-label="Open navigation"
+            >
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+            <nav class="site-nav" id="site-nav"></nav>
+        </header>
+
+        <main id="app-view" class="app-view" aria-live="polite"></main>
+    </div>
+
+    <template id="empty-state-template">
+        <div class="empty-state">
+            <h3>No items found</h3>
+            <p>Try changing filters or adding a new movie.</p>
+        </div>
+    </template>
+
+    <script src="./public/state.js"></script>
+    <script src="./public/helpers.js"></script>
+    <script src="./public/navigation.js"></script>
+    <script src="./public/views.js"></script>
+    <script src="./public/router.js"></script>
+    <script src="./public/app.js"></script>
+</body>
+</html>

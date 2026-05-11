@@ -1,316 +1,382 @@
 # KinoWeb — Online Cinema Web Application
+
 ### Название проекта
 
-KinoWeb — Онлайн-кинотеатр
+KinoWeb — онлайн-кинотеатр
 
 ### Описание проекта
 
-KinoWeb — это веб-приложение онлайн-кинотеатра, позволяющее пользователям просматривать каталог фильмов, искать контент, добавлять фильмы в избранное и управлять личным профилем.
+KinoWeb — это веб-приложение онлайн-кинотеатра, позволяющее пользователям просматривать каталог фильмов, искать контент, добавлять фильмы в избранное, оставлять оценки и комментарии, а также управлять личным профилем.
 
 Приложение построено по клиент-серверной архитектуре с разделением frontend и backend. Пользователь может зарегистрироваться, авторизоваться, просматривать фильмы и получать подробную информацию о них.
 
-Проект демонстрирует разработку полноценного FullStack веб-приложения с использованием Vanilla JavaScript, Node.js и MySQL.
+Проект демонстрирует разработку FullStack веб-приложения с использованием Vanilla JavaScript, Node.js, Express и MySQL.
 
 ### Целевая аудитория
 
 * пользователи онлайн-кинотеатров
-
-* любители фильмов и сериалов
-
+* любители фильмов
 * пользователи, создающие персональные коллекции фильмов
-
-* студенты, изучающие FullStack разработку
+* студенты, изучающие FullStack-разработку
 
 ### Ключевой функционал
 
 * регистрация пользователей
-
 * авторизация
-
-* восстановление пароля
-
+* восстановление пароля через контрольный вопрос
 * просмотр каталога фильмов
-
 * страница фильма
-
 * поиск фильмов
-
 * избранные фильмы
-
+* оценки и комментарии к фильмам
 * личный кабинет
-
-* администрирование контента
-
-* REST API взаимодействие
+* администрирование фильмов и пользователей
+* REST API
+* обработка 404 для неизвестных страниц и API-маршрутов
 
 ### Структура приложения
+
 | Раздел | URL | Тип доступа | Описание |
 |---|---|---|---|
 | Главная | `/` | Публичный | Главная страница |
-| Аутентификация | `/auth/*` | Публичный | Вход, регистрация, восстановление |
-| Каталог | `/catalog` | Публичный | Список фильмов |
-| Страница фильма | `/detail/:id` | Публичный | Детальная страница |
+| Аутентификация | `/auth/login`, `/auth/register`, `/auth/recover` | Публичный | Вход, регистрация, восстановление |
+| Каталог | `/catalog` | Публичный | Список фильмов с фильтрами |
+| Страница фильма | `/detail/:id` | Публичный | Детальная страница фильма |
 | Поиск | `/search` | Публичный | Поиск фильмов |
 | Личный кабинет | `/profile` | Приватный | Профиль пользователя |
 | Избранное | `/favorites` | Приватный | Сохранённые фильмы |
-| История | `/history` | Приватный | История просмотров |
-| Админ-панель | `/admin` | Приватный | Управление контентом |
+| Админ-панель | `/admin` | Приватный, admin | Управление контентом и пользователями |
+
 #
 # Технологический стек
+
 ### Frontend
-Vanilla JavaScript
 
-Frontend реализован без фреймворков.
+Vanilla JavaScript.
 
-#### Причины выбора:
+Frontend реализован без фреймворков. Код разделён на несколько файлов:
 
-* глубокое понимание работы DOM
-
-* реализация SPA без библиотек
-
-* контроль архитектуры приложения
-
-* демонстрация базовых навыков разработки
+* `public/state.js` — состояние и настройки приложения
+* `public/router.js` — SPA-роутинг и обработка неизвестных страниц
+* `public/navigation.js` — навигация
+* `public/views.js` — страницы приложения
+* `public/helpers.js` — общие frontend-функции
+* `public/app.js` — точка входа
 
 #### Роутинг
 
 * History API
-
 * динамическая загрузка страниц
-
 * SPA-навигация без перезагрузки
 
 #### State Management
 
 * LocalStorage
-
-* JWT Token
-
+* JWT token
 * глобальное состояние приложения
 
 ### Backend
-Node.js + Express.js
 
-#### Backend построен на:
+Node.js + Express.js.
 
-* Node.js
+Backend разделён на несколько файлов:
 
-* Express.js
-
-#### Преимущества:
-
-* единый язык разработки
-
-* высокая производительность
-
-* удобная реализация REST API
-
-* middleware архитектура
+* `server.js` — запуск приложения
+* `server/config.js` — настройки, пути, подключение к MySQL
+* `server/helpers.js` — валидация, middleware, нормализация данных, инициализация БД
+* `server/routes.js` — API-маршруты и fallback для SPA
 
 ### База данных
 
-MySQL
+MySQL.
 
-#### Причины выбора:
+Используются таблицы:
 
-* реляционная структура данных
-
-* поддержка связей между сущностями
-
-* стабильность и производительность
+* `users`
+* `movies`
+* `favorites`
+* `movie_ratings`
+* `movie_comments`
 
 ### Инфраструктура
-| Компонент |	Размещение |
-|---|---|
-| Frontend |	Static Hosting |
-| Backend |	Node.js Server |
-| Database |	MySQL Server |
 
-### Архитектура:
+| Компонент | Размещение |
+|---|---|
+| Frontend | Static files в `public` |
+| Backend | Node.js server |
+| Database | MySQL server |
+
+### Архитектура
 
 Browser → Frontend → REST API → Backend → MySQL
+
+#
+# Запуск проекта
+
+### Установка зависимостей
+
+```bash
+npm install
+```
+
+### Переменные окружения
+
+Создайте `.env` файл или используйте существующий:
+
+```env
+PORT=3001
+DB_HOST=localhost
+DB_USER=root
+DB_PASSWORD=
+DB_NAME=kinoweb
+DB_PORT=3306
+JWT_SECRET=your_secret
+```
+
+### Запуск
+
+```bash
+npm start
+```
+
+или
+
+```bash
+npm run dev
+```
+
+После запуска приложение доступно по адресу:
+
+```text
+http://localhost:3001
+```
+
 #
 # Визуальное проектирование интерфейса
-### Главная страница (/)
+
+### Главная страница (`/`)
 
 #### Тип доступа: публичный
 
-Основные блоки
+Основные блоки:
 
-#### Шапка
+* шапка с логотипом KinoWeb и навигацией
+* баннер-блок
+* слайдер новинок
+* популярные фильмы
 
-* логотип KinoWeb
+GET `/api/movies?popular=true`
 
-* меню навигации
+### Аутентификация
 
-* кнопка входа
-
-* аватар пользователя
-
-#### Баннер-блок
-
-* баннер
-
-* заголовок
-
-#### Популярные фильмы
-
-GET /api/movies?popular=true
-
-#### Новинки
-
-#### Футер
-
-* контакты
-
-* ссылки
-
-### Аутентификация (/auth/*)
-
-#### Тип доступа: публичный
-
-#### Вход (/auth/login)
+#### Вход (`/auth/login`)
 
 * email
-
 * пароль
-
 * кнопка входа
 
-#### Регистрация (/auth/register)
+#### Регистрация (`/auth/register`)
 
-* username
+* имя
+* email
+* пароль
+* контрольный вопрос
+* ответ на контрольный вопрос
+
+#### Восстановление (`/auth/recover`)
 
 * email
+* получение контрольного вопроса
+* ответ на контрольный вопрос
+* новый пароль
 
-* пароль
-
-* подтверждение пароля
-
-#### Восстановление (/auth/reset)
-
-* ввод email
-
-* отправка письма
-
-### Каталог (/catalog)
+### Каталог (`/catalog`)
 
 #### Тип доступа: публичный
 
-* фильтры (жанр, год, рейтинг)
-
+* фильтры: жанр, год, рейтинг
 * сетка фильмов
-
-* сортировка
-
 * пагинация
 
-GET /api/movies
+GET `/api/movies`
 
-### Страница фильма (/catalog/:id)
+### Страница фильма (`/detail/:id`)
 
 #### Тип доступа: публичный
 
 * постер
-
 * название
-
 * рейтинг
-
 * описание
+* блок просмотра
+* избранное
+* оценки и комментарии
 
-* кнопка «В избранное»
+GET `/api/movies/:id`
 
-GET /api/movies/:id
-
-### Поиск (/search)
+### Поиск (`/search`)
 
 #### Тип доступа: публичный
 
 * поле поиска
-
 * динамические результаты
 
-GET /api/movies/search?q=
+GET `/api/movies/search?q=`
 
-### Личный кабинет (/profile)
+### Личный кабинет (`/profile`)
 
 #### Тип доступа: приватный
-
-* аватар
 
 * имя пользователя
-
 * email
-
-* смена пароля
-
+* контрольный вопрос
+* список добавленных фильмов
+* комментарии пользователя
 * выход
 
-### Избранное (/favorites)
+### Избранное (`/favorites`)
 
 #### Тип доступа: приватный
 
-GET /api/favorites
+GET `/api/favorites`
 
 * список сохранённых фильмов
-
 * удаление из избранного
 
-### Админ-панель (/admin)
+### Админ-панель (`/admin`)
 
-#### Тип доступа: приватный
+#### Тип доступа: приватный, роль `admin`
 
 * добавление фильма
-
-* редактирование
-
-* удаление
-
+* редактирование фильма
+* удаление фильма
 * управление пользователями
+
 #
 # Схема данных и API
+
 ### User
-| Поле	| Тип	|
+
+| Поле | Тип |
 |---|---|
-| id	| INT	|
-| username	| VARCHAR	|
-| email	| VARCHAR	|
-| password_hash	| VARCHAR	|
-| role	| VARCHAR	|
-| created_at	| DATETIME	|
-## Movie
-| Поле	|	Тип	|
+| id | INT |
+| email | VARCHAR |
+| password_hash | VARCHAR |
+| name | VARCHAR |
+| keyword | VARCHAR |
+| security_question | VARCHAR |
+| security_answer | VARCHAR |
+| role | VARCHAR |
+| created_at | DATETIME |
+
+### Movie
+
+| Поле | Тип |
 |---|---|
-| id	|	INT	|
-| title	|	VARCHAR	|
-| description	|	TEXT	|
-| poster	|	VARCHAR	|
-| vyear	|	INT	|
-| rating	|	FLOAT	|
-| genre	|	VARCHAR	|
-| is_popular	|	BOOLEAN	|
+| id | INT |
+| user_id | INT |
+| title | VARCHAR |
+| description | TEXT |
+| poster | VARCHAR |
+| watch_url | VARCHAR |
+| vyear | INT |
+| rating | DECIMAL |
+| genre | VARCHAR |
+| is_popular | BOOLEAN |
+| created_at | DATETIME |
+| updated_at | DATETIME |
+
 ### Favorite
-| Поле	|	Тип	|
+
+| Поле | Тип |
 |---|---|
-| id	|	INT	|
-| user_id	|	INT	|
-| movie_id	|	INT	|
+| id | INT |
+| user_id | INT |
+| movie_id | INT |
+| created_at | DATETIME |
+
+### Movie Rating
+
+| Поле | Тип |
+|---|---|
+| id | INT |
+| user_id | INT |
+| movie_id | INT |
+| rating | DECIMAL |
+| created_at | DATETIME |
+| updated_at | DATETIME |
+
+### Movie Comment
+
+| Поле | Тип |
+|---|---|
+| id | INT |
+| user_id | INT |
+| movie_id | INT |
+| text | TEXT |
+| created_at | DATETIME |
+| updated_at | DATETIME |
+
 ### API Endpoints
 
 #### Аутентификация
-Регистрация
-POST /api/auth/register
-#### Вход
-POST /api/auth/login
-#### Профиль
-GET /api/users/me
+
+POST `/api/auth/register`
+
+POST `/api/auth/login`
+
+GET `/api/auth/me`
+
+PUT `/api/auth/profile`
+
+GET `/api/auth/recovery-question`
+
+POST `/api/auth/recover`
+
 #### Фильмы
-GET /api/movies
-GET /api/movies?popular=true
-GET /api/movies/:id
-GET /api/movies/search?q=
+
+GET `/api/movies`
+
+GET `/api/movies?popular=true`
+
+GET `/api/movies/search?q=`
+
+GET `/api/movies/:id`
+
+POST `/api/movies`
+
+PUT `/api/movies/:id`
+
+DELETE `/api/movies/:id`
+
+#### Оценки и комментарии
+
+GET `/api/movies/:id/comments`
+
+POST `/api/movies/:id/comments`
+
+GET `/api/movies/:id/my-rating`
+
+POST `/api/movies/:id/rating`
+
+GET `/api/comments/me`
+
 #### Избранное
-POST /api/favorites/:movieId
-DELETE /api/favorites/:movieId
-GET /api/favorites
+
+GET `/api/favorites`
+
+POST `/api/favorites/:movieId`
+
+DELETE `/api/favorites/:movieId`
+
+#### Пользователи
+
+GET `/api/users`
+
+PUT `/api/users/:id`
+
+DELETE `/api/users/:id`
+
+#### Сервисные маршруты
+
+GET `/api/health`
